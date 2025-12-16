@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flight Tracking System - Professional Dashboard</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #7e22ce 100%);
+            min-height: 100vh;
+        }
+
+        .dashboard {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 25px;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.98);
+            padding: 35px;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.25);
+            margin-bottom: 25px;
+        }
+
+        .header h1 {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-size: 2.8em;
+            font-weight: 800;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #64748b;
+            font-size: 1.15em;
+            font-weight: 500;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            background: rgba(255, 255, 255, 0.98);
+            padding: 28px;
+            border-radius: 16px;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+            text-align: center;
+            transition: transform 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-card h3 {
+            font-size: 2.5em;
+            font-weight: 700;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+
+        .stat-card p {
+            color: #64748b;
+            font-size: 0.95em;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 25px;
+        }
+
+        .sidebar {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.25);
+            max-height: 800px;
+            overflow-y: auto;
+        }
+
+        .map-container {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.25);
+        }
+
+        #map {
+            width: 100%;
+            height: 700px;
+            border-radius: 16px;
+        }
+
+        .section-title {
+            font-size: 1.35em;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 3px solid #e2e8f0;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: 600;
+            color: #334155;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 15px;
+            transition: all 0.3s;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 12px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        .btn-secondary:hover {
+            box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+        }
+
+        .btn-info {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .btn-info:hover {
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+
+        .btn-danger:hover {
+            box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+        }
+
+        .tabs {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 12px;
+            background: #f1f5f9;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            color: #64748b;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .flight-card {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            padding: 18px;
+            border-radius: 14px;
+            margin-bottom: 14px;
+            border-left: 4px solid #667eea;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .flight-card:hover {
+            transform: translateX(6px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.15);
+        }
+
+        .flight-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .flight-card h4 {
+            color: #1e293b;
+            font-size: 1.15em;
+            font-weight: 700;
+        }
+
+        .flight-phase {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.75em;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-top: 8px;
+        }
+
+        .phase-climbing {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+        }
+
+        .phase-cruising {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+        }
+
+        .phase-descending {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+        }
+
+        .phase-landed {
+            background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+            color: white;
+        }
+
+        .flight-info {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .info-label {
+            font-size: 0.75em;
+            color: #64748b;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .info-value {
+            font-size: 0.95em;
+            color: #1e293b;
+            font-weight: 600;
+        }
+
+        .alert {
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            font-weight: 500;
+        }
+
+        .alert-error {
+            background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+            color: #991b1b;
+            border-left: 4px solid #ef4444;
+        }
+
+        .alert-success {
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            color: #166534;
+            border-left: 4px solid #10b981;
+        }
+
+        .no-data {
+            text-align: center;
+            padding: 50px 20px;
+            color: #94a3b8;
+        }
+
+        @media (max-width: 1200px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <div class="header">
+            <h1>Flight Tracking System</h1>
+            <p>Real-Time Flight Monitoring & Visualization Platform</p>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3 id="activeCount">0</h3>
+                <p>Active Flights</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="completedCount">0</h3>
+                <p>Completed Flights</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="totalUpdates">0</h3>
+                <p>Position Updates</p>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="sidebar">
+                <h2 class="section-title">Track Flight</h2>
+
+                <div class="input-group">
+                    <label for="flightNumber">Flight Number</label>
+                    <input type="text" id="flightNumber" placeholder="e.g., PK301">
+                </div>
+
+                <button class="btn" onclick="trackFlight()">Track Flight</button>
+                <button class="btn btn-secondary" onclick="loadActiveFlights()">Show All Active</button>
+                <button class="btn btn-info" onclick="loadCompletedFlights()">Show Completed</button>
+                <button class="btn btn-danger" onclick="clearMap()">Clear Map</button>
+
+                <div id="alertContainer"></div>
+
+                <h2 class="section-title" style="margin-top: 30px;">Flights</h2>
+
+                <div class="tabs">
+                    <button class="tab active" onclick="switchTab(event, 'active')">Active</button>
+                    <button class="tab" onclick="switchTab(event, 'completed')">Completed</button>
+                </div>
+
+                <div id="activeFlightsTab" class="tab-content active">
+                    <div id="activeFlightsList"></div>
+                </div>
+
+                <div id="completedFlightsTab" class="tab-content">
+                    <div id="completedFlightsList"></div>
+                </div>
+            </div>
+
+            <div class="map-container">
+                <h2 class="section-title">Live Flight Map</h2>
+                <div id="map"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const map = L.map('map').setView([30.3753, 69.3451], 5);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap',
+            maxZoom: 18
+        }).addTo(map);
+
+        let markers = [];
+        let polylines = [];
+        const API_URL = 'http://localhost:5000';
+
+        const ROUTES = {
+            'PK301': 'Lahore → Karachi', 'PK456': 'Karachi → Islamabad',
+            'PA201': 'Islamabad → Lahore', 'PK785': 'Islamabad → Dubai',
+            'EK542': 'Dubai → Lahore', 'QR101': 'Doha → Islamabad',
+            'FZ150': 'Dubai → Karachi', 'AA123': 'Karachi → London',
+            'BA260': 'London → Karachi', 'TK710': 'Istanbul → Lahore'
+        };
+
+        const AIRLINES = {
+            'PK301': 'Pakistan International Airlines',
+            'PK456': 'Pakistan International Airlines',
+            'PA201': 'Air Blue',
+            'PK785': 'Pakistan International Airlines',
+            'EK542': 'Emirates',
+            'QR101': 'Qatar Airways',
+            'FZ150': 'Fly Dubai',
+            'AA123': 'American Airlines',
+            'BA260': 'British Airways',
+            'TK710': 'Turkish Airlines'
+        };
+
+        function getFlightPhase(flight) {
+            const alt = flight.current_position.altitude;
+            const speed = flight.current_position.speed;
+
+            if (flight.status === 'landed' || flight.status === 'completed') return 'landed';
+            if (alt === 0) return 'ground';
+            if (alt < 10000 && speed < 300) return 'climbing';
+            if (alt > 30000) return 'cruising';
+            if (alt < 15000 && alt > 0) return 'descending';
+            return 'cruising';
+        }
+
+        function getPhaseEmoji(phase) {
+            const labels = {
+                'ground': 'GROUND',
+                'climbing': 'CLIMBING',
+                'cruising': 'CRUISING',
+                'descending': 'DESCENDING',
+                'landed': 'LANDED'
+            };
+            return labels[phase] || 'IN FLIGHT';
+        }
+
+        async function initDashboard() {
+            await updateStats();
+            await loadActiveFlights();
+            setInterval(updateStats, 10000);
+            setInterval(loadActiveFlights, 10000);
+        }
+
+        function switchTab(event, tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+            if (tabName === 'active') {
+                document.getElementById('activeFlightsTab').classList.add('active');
+                loadActiveFlights();
+            } else {
+                document.getElementById('completedFlightsTab').classList.add('active');
+                loadCompletedFlights();
+            }
+        }
+
+        async function updateStats() {
+            try {
+                const [activeRes, logsRes] = await Promise.all([
+                    fetch(`${API_URL}/api/flights/active`),
+                    fetch(`${API_URL}/api/flights/logs`)
+                ]);
+
+                if (activeRes.ok && logsRes.ok) {
+                    const activeData = await activeRes.json();
+                    const logsData = await logsRes.json();
+
+                    document.getElementById('activeCount').textContent = activeData.count;
+                    document.getElementById('completedCount').textContent = logsData.count;
+
+                    let totalUpdates = 0;
+                    activeData.active_flights.forEach(f => totalUpdates += f.position_history.length);
+                    logsData.flight_logs.forEach(f => totalUpdates += f.total_positions);
+                    document.getElementById('totalUpdates').textContent = totalUpdates;
+                }
+            } catch (error) {
+                console.error('Stats error:', error);
+            }
+        }
+
+        async function trackFlight() {
+            const flightNumber = document.getElementById('flightNumber').value.trim().toUpperCase();
+
+            if (!flightNumber) {
+                showAlert('Please enter a flight number', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/api/flights/track/${flightNumber}`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    displayFlightPath(data);
+                    showAlert(`Flight ${flightNumber} loaded!`, 'success');
+                } else {
+                    showAlert(data.error || 'Flight not found', 'error');
+                }
+            } catch (error) {
+                showAlert('Cannot connect to server', 'error');
+            }
+        }
+
+        function displayFlightPath(flightData) {
+            clearMap();
+
+            const positions = flightData.position_history;
+            if (!positions || positions.length === 0) {
+                showAlert('No position data', 'error');
+                return;
+            }
+
+            const coords = positions.map(p => [p.latitude, p.longitude]);
+            const polyline = L.polyline(coords, {
+                color: '#667eea',
+                weight: 4,
+                opacity: 0.8
+            }).addTo(map);
+            polylines.push(polyline);
+
+            positions.forEach((pos, i) => {
+                const isStart = i === 0;
+                const isEnd = i === positions.length - 1;
+
+                if (!isStart && !isEnd && i % 2 !== 0) return;
+
+                let icon;
+                if (isStart) {
+                    // GREEN - Departure/Start
+                    icon = L.divIcon({
+                        html: '<div style="width:18px;height:18px;background:#10b981;border:4px solid white;border-radius:50%;box-shadow:0 3px 10px rgba(16,185,129,0.6);"></div>',
+                        className: '',
+                        iconSize: [26,26],
+                        iconAnchor: [13, 13]
+                    });
+                } else if (isEnd) {
+                    const landed = flightData.status === 'landed' || flightData.status === 'completed';
+                    const color = landed ? '#ef4444' : '#667eea';
+                    const shadowColor = landed ? 'rgba(239,68,68,0.6)' : 'rgba(102,126,234,0.6)';
+                    // RED - Landed OR BLUE - Current Position
+                    icon = L.divIcon({
+                        html: `<div style="width:18px;height:18px;background:${color};border:4px solid white;border-radius:50%;box-shadow:0 3px 10px ${shadowColor};"></div>`,
+                        className: '',
+                        iconSize: [26,26],
+                        iconAnchor: [13, 13]
+                    });
+                } else {
+                    // SMALL BLUE - Waypoints
+                    icon = L.divIcon({
+                        html: '<div style="width:10px;height:10px;background:#667eea;border:2px solid white;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.4);"></div>',
+                        className: '',
+                        iconSize: [14,14],
+                        iconAnchor: [7, 7]
+                    });
+                }
+
+                const popup = `
+                    <div style="min-width:200px">
+                        <h3 style="margin:0 0 10px 0;color:#667eea">${flightData.flight_number}</h3>
+                        <p style="margin:3px 0"><b>Time:</b> ${new Date(pos.timestamp).toLocaleTimeString()}</p>
+                        <p style="margin:3px 0"><b>Altitude:</b> ${pos.altitude.toLocaleString()} ft</p>
+                        <p style="margin:3px 0"><b>Speed:</b> ${pos.speed} knots</p>
+                        <p style="margin:3px 0"><b>Heading:</b> ${pos.heading}°</p>
+                    </div>
+                `;
+
+                const marker = L.marker([pos.latitude, pos.longitude], {icon})
+                    .bindPopup(popup)
+                    .addTo(map);
+                markers.push(marker);
+            });
+
+            map.fitBounds(polyline.getBounds(), {padding: [50,50]});
+        }
+
+        async function loadActiveFlights() {
+            try {
+                const response = await fetch(`${API_URL}/api/flights/active`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    displayActiveFlightsList(data.active_flights);
+                    if (data.count > 0) displayAllActiveOnMap(data.active_flights);
+                }
+            } catch (error) {
+                console.error('Load error:', error);
+            }
+        }
+
+        async function loadCompletedFlights() {
+            try {
+                const response = await fetch(`${API_URL}/api/flights/logs`);
+                const data = await response.json();
+
+                if (response.ok) {
+                    displayCompletedFlightsList(data.flight_logs);
+                    // THIS SHOWS ALL ROUTES ON MAP
+                    if (data.count > 0) {
+                        displayAllCompletedOnMap(data.flight_logs);
+                        showAlert(`Displaying ${data.count} completed flight routes on map`, 'success');
+                    } else {
+                        showAlert('No completed flights found', 'error');
+                    }
+                    await updateStats();
+                }
+            } catch (error) {
+                console.error('Load error:', error);
+                showAlert('Cannot load completed flights', 'error');
+            }
+        }
+
+        function displayAllCompletedOnMap(flights) {
+            clearMap();
+
+            // Color palette for different flights
+            const colors = [
+                '#667eea', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
+                '#06b6d4', '#ec4899', '#84cc16', '#f97316', '#14b8a6'
+            ];
+
+            flights.forEach((flight, index) => {
+                const positions = flight.position_history;
+                if (!positions || positions.length === 0) return;
+
+                const flightColor = colors[index % colors.length];
+
+                // Create curved path for realistic routes
+                const coords = positions.map(p => [p.latitude, p.longitude]);
+
+                // Draw smooth polyline
+                const polyline = L.polyline(coords, {
+                    color: flightColor,
+                    weight: 3,
+                    opacity: 0.8,
+                    smoothFactor: 2.0
+                }).addTo(map);
+                polylines.push(polyline);
+
+                // Start marker (Green)
+                const startIcon = L.divIcon({
+                    html: `<div style="width:12px;height:12px;background:#10b981;border:3px solid white;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.4)"></div>`,
+                    className: '',
+                    iconSize: [18,18]
+                });
+                const startMarker = L.marker([positions[0].latitude, positions[0].longitude], {icon: startIcon})
+                    .bindPopup(`
+                        <div>
+                            <h3 style="margin:0 0 8px 0;color:${flightColor};font-weight:700">${flight.flight_number}</h3>
+                            <p style="margin:3px 0;color:#64748b;font-weight:600">Route: ${ROUTES[flight.flight_number] || 'Unknown'}</p>
+                            <p style="margin:3px 0"><b>Status:</b> Departed</p>
+                            <p style="margin:3px 0"><b>Time:</b> ${new Date(positions[0].timestamp).toLocaleString()}</p>
+                        </div>
+                    `)
+                    .addTo(map);
+                markers.push(startMarker);
+
+                // End marker (Red)
+                const endPos = positions[positions.length - 1];
+                const endIcon = L.divIcon({
+                    html: `<div style="width:12px;height:12px;background:#ef4444;border:3px solid white;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.4)"></div>`,
+                    className: '',
+                    iconSize: [18,18]
+                });
+                const endMarker = L.marker([endPos.latitude, endPos.longitude], {icon: endIcon})
+                    .bindPopup(`
+                        <div>
+                            <h3 style="margin:0 0 8px 0;color:${flightColor};font-weight:700">${flight.flight_number}</h3>
+                            <p style="margin:3px 0;color:#64748b;font-weight:600">Route: ${ROUTES[flight.flight_number] || 'Unknown'}</p>
+                            <p style="margin:3px 0"><b>Status:</b> Landed</p>
+                            <p style="margin:3px 0"><b>Time:</b> ${new Date(endPos.timestamp).toLocaleString()}</p>
+                            <p style="margin:3px 0"><b>Duration:</b> ${Math.round((new Date(flight.flight_end) - new Date(flight.flight_start))/60000)} min</p>
+                            <p style="margin:3px 0"><b>Total Updates:</b> ${flight.total_positions}</p>
+                        </div>
+                    `)
+                    .addTo(map);
+                markers.push(endMarker);
+
+                // Add some waypoint markers for longer paths
+                if (positions.length > 5) {
+                    const midIndex = Math.floor(positions.length / 2);
+                    const midPos = positions[midIndex];
+                    const wayIcon = L.divIcon({
+                        html: `<div style="width:8px;height:8px;background:${flightColor};border:2px solid white;border-radius:50%;box-shadow:0 2px 4px rgba(0,0,0,0.3)"></div>`,
+                        className: '',
+                        iconSize: [12,12]
+                    });
+                    const wayMarker = L.marker([midPos.latitude, midPos.longitude], {icon: wayIcon})
+                        .bindPopup(`
+                            <div>
+                                <h4 style="margin:0 0 5px 0;color:${flightColor}">${flight.flight_number}</h4>
+                                <p style="margin:2px 0;font-size:0.85em"><b>Waypoint</b></p>
+                                <p style="margin:2px 0;font-size:0.85em">Alt: ${midPos.altitude.toLocaleString()} ft</p>
+                                <p style="margin:2px 0;font-size:0.85em">Speed: ${midPos.speed} kts</p>
+                            </div>
+                        `)
+                        .addTo(map);
+                    markers.push(wayMarker);
+                }
+            });
+
+            // Fit map to show all routes
+            if (polylines.length > 0) {
+                const group = L.featureGroup(polylines);
+                map.fitBounds(group.getBounds(), {padding: [50,50]});
+            }
+
+            // Show legend
+            showAlert(`Showing ${flights.length} completed flight routes with different colors`, 'success');
+        }
+
+        function displayActiveFlightsList(flights) {
+            const container = document.getElementById('activeFlightsList');
+
+            if (flights.length === 0) {
+                container.innerHTML = '<div class="no-data">No active flights</div>';
+                return;
+            }
+
+            container.innerHTML = flights.map(flight => {
+                const route = ROUTES[flight.flight_number] || 'Unknown Route';
+                const airline = AIRLINES[flight.flight_number] || 'Unknown Airline';
+                const phase = getFlightPhase(flight);
+                const emoji = getPhaseEmoji(phase);
+
+                return `
+                    <div class="flight-card" onclick="trackFlightById('${flight.flight_number}')">
+                        <div class="flight-card-header">
+                            <h4>${flight.flight_number} - ${airline}</h4>
+                        </div>
+                        <div style="color:#64748b;font-size:0.9em;font-weight:500;margin-bottom:8px">${route}</div>
+                        <div class="flight-phase phase-${phase}">${emoji}</div>
+                        <div class="flight-info">
+                            <div class="info-item">
+                                <span class="info-label">Altitude</span>
+                                <span class="info-value">${flight.current_position.altitude.toLocaleString()} ft</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Speed</span>
+                                <span class="info-value">${flight.current_position.speed} kts</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Updates</span>
+                                <span class="info-value">${flight.position_history.length}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Last Update</span>
+                                <span class="info-value">${new Date(flight.current_position.timestamp).toLocaleTimeString()}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function displayCompletedFlightsList(flights) {
+            const container = document.getElementById('completedFlightsList');
+
+            if (flights.length === 0) {
+                container.innerHTML = '<div class="no-data">No completed flights</div>';
+                return;
+            }
+
+            container.innerHTML = flights.map(flight => {
+                const route = ROUTES[flight.flight_number] || 'Unknown Route';
+                const airline = AIRLINES[flight.flight_number] || 'Unknown Airline';
+                return `
+                    <div class="flight-card" onclick="trackFlightById('${flight.flight_number}')" style="border-left-color:#64748b">
+                        <div class="flight-card-header">
+                            <h4 style="color:#64748b">${flight.flight_number} - ${airline}</h4>
+                        </div>
+                        <div style="color:#64748b;font-size:0.9em;margin-bottom:8px">${route}</div>
+                        <div class="flight-phase phase-landed">LANDED</div>
+                        <div class="flight-info">
+                            <div class="info-item">
+                                <span class="info-label">Total Updates</span>
+                                <span class="info-value">${flight.total_positions}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Duration</span>
+                                <span class="info-value">${Math.round((new Date(flight.flight_end) - new Date(flight.flight_start))/60000)} min</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function displayAllActiveOnMap(flights) {
+            clearMap();
+
+            flights.forEach(flight => {
+                const pos = flight.current_position;
+                const phase = getFlightPhase(flight);
+                const phaseLabel = getPhaseEmoji(phase);
+
+                // Create LARGER, MORE VISIBLE plane marker
+                const icon = L.divIcon({
+                    html: '<div style="width:20px;height:20px;background:#667eea;border:4px solid white;border-radius:50%;box-shadow:0 3px 10px rgba(0,0,0,0.5);"></div>',
+                    className: '',
+                    iconSize: [28,28],
+                    iconAnchor: [14, 14]
+                });
+
+                const popup = `
+                    <div style="min-width:180px">
+                        <h3 style="margin:0 0 10px 0;color:#667eea">${flight.flight_number}</h3>
+                        <p style="margin:3px 0"><b>Phase:</b> ${phaseLabel}</p>
+                        <p style="margin:3px 0"><b>Altitude:</b> ${pos.altitude.toLocaleString()} ft</p>
+                        <p style="margin:3px 0"><b>Speed:</b> ${pos.speed} knots</p>
+                    </div>
+                `;
+
+                const marker = L.marker([pos.latitude, pos.longitude], {icon})
+                    .bindPopup(popup)
+                    .addTo(map);
+                markers.push(marker);
+            });
+
+            if (markers.length > 0) {
+                const group = L.featureGroup(markers);
+                map.fitBounds(group.getBounds(), {padding: [50,50]});
+            }
+        }
+
+        function trackFlightById(flightNumber) {
+            document.getElementById('flightNumber').value = flightNumber;
+            trackFlight();
+        }
+
+        function clearMap() {
+            markers.forEach(m => map.removeLayer(m));
+            polylines.forEach(p => map.removeLayer(p));
+            markers = [];
+            polylines = [];
+        }
+
+        function showAlert(message, type) {
+            const container = document.getElementById('alertContainer');
+            container.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+            setTimeout(() => container.innerHTML = '', 5000);
+        }
+
+        document.getElementById('flightNumber').addEventListener('keypress', e => {
+            if (e.key === 'Enter') trackFlight();
+        });
+
+        initDashboard();
+    </script>
+</body>
+</html>
